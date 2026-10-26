@@ -16,6 +16,9 @@ def test_help_lists_doctor() -> None:
     assert result.exit_code == 0
     assert "doctor" in result.stdout
     assert "clone-website" in result.stdout
+    assert "ghidra" in result.stdout
+    assert "app-re" in result.stdout
+    assert "tui" in result.stdout
 
 
 def test_doctor_identify_inventory_slice(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -24,6 +27,7 @@ def test_doctor_identify_inventory_slice(tmp_path: Path, monkeypatch: pytest.Mon
     assert doctor.exit_code == 0
     assert "support_matrix" in doctor.stdout
     assert "absent" not in doctor.stdout
+    assert "8092/attach" in doctor.stdout
 
     pe = tmp_path / "tiny.bin"
     pe.write_bytes(build_minimal_pe32())
@@ -50,3 +54,21 @@ def test_doctor_identify_inventory_slice(tmp_path: Path, monkeypatch: pytest.Mon
     assert cloned.exit_code == 0, cloned.stdout
     assert "website" in cloned.stdout
     assert "clone_dir" in cloned.stdout
+
+
+def test_ghidra_and_app_re_opt_in_missing_engines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("REVENG_DEBUG_STATE_ROOT", str(tmp_path / "state"))
+    monkeypatch.setattr("reveng_debug.adapters.ghidra.discover_analyze_headless", lambda: None)
+    monkeypatch.setattr("reveng_debug.extras.reveng_app.find_spec", lambda _name: None)
+    pe = tmp_path / "tiny.bin"
+    pe.write_bytes(build_minimal_pe32())
+    ghidra = runner.invoke(app, ["ghidra", str(pe)])
+    assert ghidra.exit_code == 0, ghidra.stdout
+    assert "unsupported" in ghidra.stdout
+    assert "absent" not in ghidra.stdout
+    app_re = runner.invoke(app, ["app-re", str(pe)])
+    assert app_re.exit_code == 0, app_re.stdout
+    assert "unsupported" in app_re.stdout
+    assert "absent" not in app_re.stdout

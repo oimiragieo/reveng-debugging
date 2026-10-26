@@ -2,17 +2,17 @@
 
 Evidence-first **debugging / software-archaeology** toolkit for binaries and apps you are authorized to inspect.
 
-It is a thin Python orchestrator: Windows-first PE + JS/Electron inventory, website clone (static HTML or gotcontext-chrome capture), a thin MCP, and an agent skill. It is **not** a dump of REA, leanrea, or REVENG, and it does **not** generate exploits.
+It is a thin Python orchestrator: Windows-first PE + ELF/Mach-O + JS/Electron inventory, website clone (static HTML or gotcontext-chrome capture), a TUI, a thin MCP, and an agent skill. It is **not** a dump of REA, leanrea, or REVENG, and it does **not** generate exploits.
 
 ## Install
 
 ```powershell
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,lief]"
 reveng-debug --help
 reveng-debug doctor
 ```
 
-Python 3.11+. Optional: `pip install -e ".[lief]"` for the preferred PE engine (`pefile` is the fallback and reports reduced coverage).
+Python 3.11+. `pefile` is the PE fallback and reports reduced coverage. LIEF is preferred for PE/ELF/Mach-O. BYO Ghidra (`analyzeHeadless` on PATH or `GHIDRA_INSTALL_DIR`) and BYO `reveng` (`reverse-engineer-app` only) are opt-in; they are never vendored.
 
 ## Commands
 
@@ -23,10 +23,15 @@ Python 3.11+. Optional: `pip install -e ".[lief]"` for the preferred PE engine (
 | `reveng-debug inventory PATH` | Copy into `%TEMP%\reveng-debug\<session>\`, emit evidence |
 | `reveng-debug slice PATH NEEDLE` | Bounded static slice |
 | `reveng-debug clone-website TARGET` | HTML file, capture JSON, or static http(s) snapshot |
+| `reveng-debug ghidra PATH` | Opt-in BYO Ghidra headless on the session copy |
+| `reveng-debug app-re PATH` | Opt-in BYO reverse-engineer-app on the session copy |
+| `reveng-debug tui` | Interactive loop; attach omega-vision at `http://127.0.0.1:8092/attach` |
 | `reveng-debug session show ID` | Session + ledger |
-| `reveng-debug mcp` | Thin MCP stdio (includes `clone_website`) |
+| `reveng-debug mcp` | Thin MCP stdio (includes `ghidra` and `app_re`) |
 
-Live website DOM/tokens/assets: follow `skills/reveng-debug/SKILL.md` gotcontext-chrome sequence, then `clone-website capture.json`. Native targets are never executed by default. Ghidra and live native attach remain Wave 2 (`unsupported`).
+Live website DOM/tokens/assets: follow `skills/reveng-debug/SKILL.md` gotcontext-chrome sequence, then `clone-website capture.json`. Native targets are never executed by default. Live native attach remains `unsupported`.
+
+This host's omega-vision attach URL is `http://127.0.0.1:8092/attach` (README default elsewhere is `:8090`).
 
 ## Specs
 

@@ -14,7 +14,11 @@ CANDIDATES: tuple[tuple[str, tuple[str, ...], str], ...] = (
     ("npx", ("npx", "npx.cmd"), "optional @electron/asar launcher"),
     ("rea", ("rea", "rea.cmd"), "optional BYO REA CLI"),
     ("reveng", ("reveng", "reveng.exe"), "optional BYO REVENG CLI"),
-    ("ghidra", ("ghidraRun", "analyzeHeadless", "ghidra"), "Wave 2; presence only"),
+    (
+        "ghidra",
+        ("analyzeHeadless.bat", "analyzeHeadless", "ghidraRun", "ghidra"),
+        "opt-in BYO headless via `reveng-debug ghidra`",
+    ),
 )
 
 
@@ -23,11 +27,13 @@ def probe_tools() -> list[ToolProbe]:
     for name, binaries, note in CANDIDATES:
         found = _which_any(binaries)
         if found:
-            status = CapabilityStatus.UNSUPPORTED if name == "ghidra" else CapabilityStatus.PRESENT
-            detail = f"{found}; {note}"
-            if name == "ghidra":
-                detail = f"{found}; Wave 2 — doctor reports PATH only, MVP does not invoke Ghidra"
-            probes.append(ToolProbe(name=name, status=status, detail=detail))
+            probes.append(
+                ToolProbe(
+                    name=name,
+                    status=CapabilityStatus.PRESENT,
+                    detail=f"{found}; {note}",
+                )
+            )
         else:
             probes.append(
                 ToolProbe(
@@ -51,7 +57,7 @@ def _probe_lief() -> ToolProbe:
         name="lief",
         status=CapabilityStatus.PRESENT,
         detail="importable",
-        coverage="pe-headers,imports,exports,sections,dll-characteristics",
+        coverage="pe-headers,elf-headers,macho-headers,imports,exports,sections",
     )
 
 
@@ -81,7 +87,7 @@ def _probe_reveng_module() -> ToolProbe:
     return ToolProbe(
         name="reveng_module",
         status=CapabilityStatus.PRESENT,
-        detail="importable; passthrough remains opt-in and copy-workspace only",
+        detail="importable; `reveng-debug app-re` is opt-in and copy-workspace only",
     )
 
 

@@ -9,4 +9,4 @@
 5. Wire `service.inventory` and a unit test with a generated fixture.
 6. Update `SupportMatrix` in the same change. Unsupported stays explicit.
 
-Do not add exploit generation, live attach, or Ghidra invocation in MVP.
+Do not add exploit generation or live native attach. Ghidra and `reveng` app-re are opt-in BYO adapters; missing engines must return `unsupported`.

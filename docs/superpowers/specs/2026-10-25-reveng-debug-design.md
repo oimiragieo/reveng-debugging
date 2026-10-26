@@ -34,7 +34,7 @@ Always-on adapters: PE inventory (LIEF, optional dumpbin / llvm-objdump), JS/Ele
 
 BYO (not vendored): installed `reveng` GA `reverse-engineer-app` only; `rea` PATH passthrough; local Ghidra headless.
 
-Thin MCP (six tools): `doctor`, `identify`, `inventory`, `slice`, `session_show`, `evidence_get`.
+Thin MCP: `doctor`, `identify`, `inventory`, `slice`, `session_show`, `evidence_get`, `clone_website`, `ghidra`, `app_re`.
 
 ## 4. Evidence contract (SPEC-RD-001)
 
@@ -45,7 +45,7 @@ Every claim is `seen` | `inferred` | `unknown`. Capability outcomes are distinct
 | Capability status | Meaning |
 |---|---|
 | `present` | Tool/engine was found and used |
-| `unsupported` | Optional engine not wired in this build (e.g. Ghidra Wave 2, dynamic attach) |
+| `unsupported` | Optional engine not available in this environment (e.g. Ghidra missing, dynamic attach) |
 | `failed` | Engine was present but the probe errored; keep partial results |
 | `unknown` | Presence not yet probed |
 
@@ -59,13 +59,13 @@ Fields: `schema_version`, `authority`, `tool`, `command`, `limitations`, locatio
 
 Never mutate the original target. Copy into `%TEMP%\reveng-debug\<session_id>\`. Session JSON + artifact index.
 
-ASAR extract (Python reader or bounded `asar` CLI) **must** reject `..`, drive-root, absolute, and symlink/junction members. All extracted paths stay inside the session directory. BYO `rea` / `reveng` passthrough is **opt-in**, receives copy-workspace paths only, and defaults to static/non-executing flags. Ghidra is Wave 2 (doctor may report PATH presence; MVP never invokes it).
+ASAR extract (Python reader or bounded `asar` CLI) **must** reject `..`, drive-root, absolute, and symlink/junction members. All extracted paths stay inside the session directory. BYO `rea` / `reveng` passthrough is **opt-in**, receives copy-workspace paths only, and defaults to static/non-executing flags. Ghidra is opt-in Wave 2 (`reveng-debug ghidra`); missing analyzeHeadless returns `unsupported`.
 
 ## 6. CLI (SPEC-RD-003+)
 
-`reveng-debug doctor|identify|inventory|slice|session`
+`reveng-debug doctor|identify|inventory|slice|session|ghidra|app-re|tui`
 
-Runtime default: do not execute the target. `dynamic_attach` flag is present and **unsupported** in MVP.
+Runtime default: do not execute the target. `dynamic_attach` flag is present and **unsupported**.
 
 ## 7. CL sequence
 
@@ -83,6 +83,11 @@ MIT. NOTICE attributes morluto/REA, AICodeKing/leanrea, oimiragieo/REVENG.
 
 Shipped after MVP: REA-style "Clone this website" without REA CDP. Static HTML/JSON in-process; live DOM via **gotcontext-chrome** (`tabs_context_mcp`, `navigate`, `get_page_text`, `extract_design_tokens`, `tab_page_assets`, `decompose_dom_components`, `javascript_tool`, `capture_visual_frame`).
 
-## 11. Wave 2 (still deferred)
+## 11. Wave 2 (shipped)
 
-Ghidra BYO invocation, ELF/Mach-O via LIEF, TUI + omega-vision `http://127.0.0.1:8092/attach`, optional `reveng` extra wiring.
+- Ghidra BYO headless: `reveng-debug ghidra PATH` (analyzeHeadless / `GHIDRA_INSTALL_DIR`; project paths without `.`-prefixed segments).
+- ELF/Mach-O inventory via LIEF.
+- TUI: `reveng-debug tui`, omega-vision attach `http://127.0.0.1:8092/attach` (README default `:8090`).
+- Opt-in `reveng-debug app-re` wrapping installed `reveng` GA `reverse-engineer-app` only, copy-workspace paths, non-executing.
+
+Native `dynamic_attach` stays unsupported.

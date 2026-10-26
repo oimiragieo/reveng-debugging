@@ -18,6 +18,8 @@ def test_tools_catalog_includes_clone_website() -> None:
         "session_show",
         "evidence_get",
         "clone_website",
+        "ghidra",
+        "app_re",
     ]
 
 
@@ -27,7 +29,7 @@ def test_handle_initialize_and_list() -> None:
     assert init["result"]["serverInfo"]["name"] == "reveng-debug"
     listed = handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     assert listed is not None
-    assert len(listed["result"]["tools"]) == 7
+    assert len(listed["result"]["tools"]) == 9
 
 
 def test_dispatch_identify(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -36,3 +38,14 @@ def test_dispatch_identify(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     pe.write_bytes(build_minimal_pe32())
     result = dispatch("identify", {"path": str(pe)})
     assert "pe" in result["content"][0]["text"]
+
+
+def test_dispatch_ghidra_unsupported(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("REVENG_DEBUG_STATE_ROOT", str(tmp_path / "state"))
+    monkeypatch.setattr("reveng_debug.adapters.ghidra.discover_analyze_headless", lambda: None)
+    pe = tmp_path / "tiny.bin"
+    pe.write_bytes(build_minimal_pe32())
+    result = dispatch("ghidra", {"path": str(pe)})
+    text = result["content"][0]["text"]
+    assert "unsupported" in text
+    assert "absent" not in text

@@ -27,7 +27,7 @@ TOOLS = (
     },
     {
         "name": "inventory",
-        "description": "Admit a copy and inventory PE/JS/Electron/website targets.",
+        "description": "Admit a copy and inventory PE/ELF/Mach-O/JS/Electron/website targets.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -83,6 +83,36 @@ TOOLS = (
             "required": ["target"],
         },
     },
+    {
+        "name": "ghidra",
+        "description": (
+            "Opt-in BYO Ghidra analyzeHeadless on a session copy. "
+            "Returns unsupported if Ghidra is not installed. Does not execute the target."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "session_id": {"type": "string"},
+            },
+            "required": ["path"],
+        },
+    },
+    {
+        "name": "app_re",
+        "description": (
+            "Opt-in BYO reverse-engineer-app on a session copy. "
+            "Returns unsupported if reveng is not importable. Does not execute the target."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string"},
+                "session_id": {"type": "string"},
+            },
+            "required": ["path"],
+        },
+    },
 )
 
 
@@ -117,6 +147,18 @@ def dispatch(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     if name == "clone_website":
         result = service.clone_website(
             str(arguments["target"]),
+            session_id=arguments.get("session_id"),
+        )
+        return _result(result.model_dump())
+    if name == "ghidra":
+        result = service.ghidra_headless(
+            Path(str(arguments["path"])),
+            session_id=arguments.get("session_id"),
+        )
+        return _result(result.model_dump())
+    if name == "app_re":
+        result = service.app_re(
+            Path(str(arguments["path"])),
             session_id=arguments.get("session_id"),
         )
         return _result(result.model_dump())

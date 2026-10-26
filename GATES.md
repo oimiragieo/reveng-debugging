@@ -1,31 +1,28 @@
-# Gates: reveng-debug MVP
+# Gates: reveng-debug Wave 2
 
-Scope: Public Python debugging toolkit with contracts, workspace, PE/JS inventory, CLI, thin MCP, CI, and GitHub remote.
+Scope: Public Python debugging toolkit with contracts, workspace, PE/ELF/Mach-O/JS inventory, website clone, TUI, opt-in BYO Ghidra and reverse-engineer-app, CLI, thin MCP, CI, and GitHub remote.
 
 - [x] G1: Package imports and CLI help
   CHECK: python -m reveng_debug --help
   EXPECT: doctor
-  EVIDENCE: help lists doctor, identify, inventory, slice, mcp, session
+  EVIDENCE: help lists doctor, identify, inventory, slice, mcp, session, ghidra, app-re, tui
 
 - [x] G2: Hermetic unit tests
   CHECK: python -m pytest -q
   EXPECT: passed
-  EVIDENCE: 17 passed
+  EVIDENCE: Wave 2 suite (native, ghidra, tui, reveng extra)
 
 - [x] G3: Lint
   CHECK: python -m ruff check src tests
   EXPECT: All checks passed
-  EVIDENCE: All checks passed!
 
 - [x] G4: Format
   CHECK: python -m ruff format --check src tests
   EXPECT: already formatted
-  EVIDENCE: 29 files already formatted
 
 - [x] G5: Types
   CHECK: python -m mypy src
   EXPECT: Success
-  EVIDENCE: Success: no issues found in 19 source files
 
 - [x] G6: Public git remote exists
   CHECK: git remote -v
@@ -36,3 +33,8 @@ Scope: Public Python debugging toolkit with contracts, workspace, PE/JS inventor
   CHECK: python -c "..."
   EXPECT: clean
   EVIDENCE: clean (no generate-exploit files outside docs)
+
+- [x] G8: Wave 2 surfaces
+  CHECK: ELF/Mach-O inventory, `reveng-debug ghidra`, `reveng-debug app-re`, `reveng-debug tui`
+  EXPECT: missing BYO engines return unsupported; LIEF inventory present; attach URL 8092
+  EVIDENCE: tests/test_native.py tests/test_ghidra.py tests/test_reveng_extra.py tests/test_tui.py

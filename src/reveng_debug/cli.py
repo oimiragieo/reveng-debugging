@@ -1,4 +1,4 @@
-"""reveng-debug CLI (SPEC-RD-003+, CL4)."""
+"""reveng-debug CLI (SPEC-RD-003+, Wave 2)."""
 
 from __future__ import annotations
 
@@ -79,6 +79,34 @@ def slice(
     _emit(service.slice_file(path, needle, session_id=session_id))
 
 
+@app.command()
+def ghidra(
+    path: Path = typer.Argument(..., exists=True, readable=True),
+    session_id: str | None = typer.Option(None, "--session-id"),
+) -> None:
+    """Opt-in BYO Ghidra headless on a session copy. Does not execute the target."""
+    result = service.ghidra_headless(path, session_id=session_id)
+    _emit(result.model_dump())
+
+
+@app.command("app-re")
+def app_re(
+    path: Path = typer.Argument(..., exists=True, readable=True),
+    session_id: str | None = typer.Option(None, "--session-id"),
+) -> None:
+    """Opt-in BYO reverse-engineer-app on a session copy. Does not execute the target."""
+    result = service.app_re(path, session_id=session_id)
+    _emit(result.model_dump())
+
+
+@app.command()
+def tui() -> None:
+    """Interactive TUI. Attach omega-vision at http://127.0.0.1:8092/attach."""
+    from reveng_debug.tui import run_tui
+
+    run_tui()
+
+
 @session_app.command("show")
 def session_show(session_id: str = typer.Argument(...)) -> None:
     """Show session metadata and evidence."""
@@ -87,7 +115,7 @@ def session_show(session_id: str = typer.Argument(...)) -> None:
 
 @app.command("mcp")
 def mcp_stdio() -> None:
-    """Serve the thin MCP stdio catalog including clone_website."""
+    """Serve the thin MCP stdio catalog including Wave 2 opt-in tools."""
     from reveng_debug.mcp import main as mcp_main
 
     mcp_main()

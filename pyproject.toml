@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "reveng-debug"
 version = "0.1.0"
-description = "Authorized software-archaeology / debugging studio: evidence-first PE and JS/Electron inventory."
+description = "Authorized software-archaeology / debugging studio: evidence-first PE, ELF, Mach-O, JS/Electron, and website inventory."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [{name = "oimiragieo"}]
-keywords = ["debugging", "binary-analysis", "pe", "electron", "evidence"]
+keywords = ["debugging", "binary-analysis", "pe", "elf", "macho", "electron", "evidence"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: MIT License",
@@ -48,7 +48,7 @@ Repository = "https://github.com/oimiragieo/reveng-debugging"
 where = ["src"]
 
 [tool.setuptools.package-data]
-reveng_debug = ["py.typed"]
+reveng_debug = ["py.typed", "adapters/ghidra_scripts/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

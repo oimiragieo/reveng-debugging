@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from reveng_debug.adapters.electron import inventory_electron
+from reveng_debug.adapters.ghidra import run_ghidra_headless
 from reveng_debug.adapters.javascript import inventory_javascript, slice_text
+from reveng_debug.adapters.native import inventory_elf, inventory_macho
 from reveng_debug.adapters.pe import inventory_pe
 from reveng_debug.adapters.website import clone_website as clone_capture
 from reveng_debug.adapters.website import fetch_url
@@ -16,12 +18,14 @@ from reveng_debug.contracts.models import (
     SupportMatrix,
     TargetKind,
 )
+from reveng_debug.extras.reveng_app import run_reveng_app_re
 from reveng_debug.ledger.service import Ledger
 from reveng_debug.router.doctor import probe_tools
 from reveng_debug.router.identify import identify_target
 from reveng_debug.storage.workspace import SessionStore
 
-ELF_MACHO_LIMIT = "ELF/Mach-O inventory is Wave 2; identify reports kind only"
+OMEGA_VISION_ATTACH = "http://127.0.0.1:8092/attach"
+OMEGA_VISION_ATTACH_DEFAULT_PORT = "http://127.0.0.1:8090/attach"
 
 
 def doctor() -> dict[str, Any]:
@@ -30,6 +34,8 @@ def doctor() -> dict[str, Any]:
         "schema_version": matrix.schema_version,
         "support_matrix": matrix.model_dump(),
         "tools": [p.model_dump() for p in probe_tools()],
+        "omega_vision_attach": OMEGA_VISION_ATTACH,
+        "omega_vision_attach_readme_default": OMEGA_VISION_ATTACH_DEFAULT_PORT,
     }
 
 
@@ -56,18 +62,10 @@ def inventory(path: Path, session_id: str | None = None) -> InventoryResult:
         result = inventory_electron(admitted, ledger)
     elif kind is TargetKind.WEBSITE:
         result = clone_capture(admitted, ledger)
-    elif kind in {TargetKind.ELF, TargetKind.MACHO}:
-        result = InventoryResult(
-            session_id=store.session_id,
-            target_kind=kind,
-            original_path=str(path),
-            workspace_path=str(admitted),
-            status=CapabilityStatus.UNSUPPORTED,
-            engine="none",
-            coverage="identify-only",
-            findings={},
-            limitations=[ELF_MACHO_LIMIT],
-        )
+    elif kind is TargetKind.ELF:
+        result = inventory_elf(admitted, ledger)
+    elif kind is TargetKind.MACHO:
+        result = inventory_macho(admitted, ledger)
     else:
         result = InventoryResult(
             session_id=store.session_id,
@@ -82,6 +80,32 @@ def inventory(path: Path, session_id: str | None = None) -> InventoryResult:
         )
     result.original_path = str(path.resolve())
     if result.target_kind is not TargetKind.WEBSITE:
+        result.workspace_path = str(admitted)
+    return result
+
+
+def ghidra_headless(path: Path, session_id: str | None = None) -> InventoryResult:
+    """Opt-in BYO Ghidra headless on a session copy. Does not execute the target."""
+    store, admitted = open_session(session_id, path)
+    ledger = Ledger(store)
+    result = run_ghidra_headless(
+        admitted,
+        ledger,
+        project_dir=store.artifacts / "ghidra_project",
+    )
+    result.original_path = str(path.resolve())
+    if not result.workspace_path:
+        result.workspace_path = str(admitted)
+    return result
+
+
+def app_re(path: Path, session_id: str | None = None) -> InventoryResult:
+    """Opt-in BYO reverse-engineer-app on a session copy. Does not execute the target."""
+    store, admitted = open_session(session_id, path)
+    ledger = Ledger(store)
+    result = run_reveng_app_re(admitted, ledger)
+    result.original_path = str(path.resolve())
+    if not result.workspace_path:
         result.workspace_path = str(admitted)
     return result
 

@@ -64,10 +64,11 @@ class EvidenceItem(BaseModel):
 
 class FeatureFlags(BaseModel):
     dynamic_attach: bool = False
-    ghidra_byo: bool = False
-    reveng_extra: bool = False
+    ghidra_byo: bool = True
+    reveng_extra: bool = True
     rea_passthrough: bool = False
     gotcontext_chrome: bool = True
+    tui_attach: bool = True
 
 
 class SupportRow(BaseModel):
@@ -107,17 +108,38 @@ class SupportMatrix(BaseModel):
             SupportRow(
                 workflow="dynamic_attach",
                 status=CapabilityStatus.UNSUPPORTED,
-                notes="Flag exists; MVP never executes the target",
+                notes="Flag exists; this build never executes native targets",
+            ),
+            SupportRow(
+                workflow="elf_inventory",
+                status=CapabilityStatus.PRESENT,
+                notes="LIEF ELF headers, sections, needed libs, dynamic symbols, strings",
+            ),
+            SupportRow(
+                workflow="macho_inventory",
+                status=CapabilityStatus.PRESENT,
+                notes="LIEF Mach-O headers, sections, dylibs, exports, strings",
             ),
             SupportRow(
                 workflow="ghidra_headless",
-                status=CapabilityStatus.UNSUPPORTED,
-                notes="Wave 2: doctor may report PATH presence only",
+                status=CapabilityStatus.PRESENT,
+                notes=(
+                    "Opt-in BYO analyzeHeadless via `reveng-debug ghidra`; "
+                    "runtime returns unsupported if Ghidra is not on PATH"
+                ),
             ),
             SupportRow(
                 workflow="reveng_extra",
-                status=CapabilityStatus.UNSUPPORTED,
-                notes="Opt-in BYO if import reveng succeeds; copy-workspace paths only",
+                status=CapabilityStatus.PRESENT,
+                notes=(
+                    "Opt-in BYO `reveng-debug app-re` wrapping reverse-engineer-app; "
+                    "copy-workspace paths only; runtime unsupported if reveng missing"
+                ),
+            ),
+            SupportRow(
+                workflow="tui_attach",
+                status=CapabilityStatus.PRESENT,
+                notes="reveng-debug tui; omega-vision attach http://127.0.0.1:8092/attach",
             ),
             SupportRow(
                 workflow="rea_passthrough",
