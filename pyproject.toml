@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reveng-debug"
+version = "0.1.0"
+description = "Authorized software-archaeology / debugging studio: evidence-first PE and JS/Electron inventory."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "oimiragieo"}]
+keywords = ["debugging", "binary-analysis", "pe", "electron", "evidence"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Environment :: Console",
+  "Topic :: Software Development :: Debuggers",
+]
+dependencies = [
+  "pydantic>=2.7",
+  "typer>=0.12",
+  "pefile>=2024.8.26",
+]
+
+[project.optional-dependencies]
+lief = ["lief>=0.16"]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+  "mypy>=1.11",
+  "pytest-cov>=5",
+]
+
+[project.scripts]
+reveng-debug = "reveng_debug.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/oimiragieo/reveng-debugging"
+Repository = "https://github.com/oimiragieo/reveng-debugging"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+reveng_debug = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Argument", "typer.Option"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["reveng_debug"]
+mypy_path = "src"

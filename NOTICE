@@ -1,0 +1,28 @@
+reveng-debug
+Copyright (c) 2026 oimiragieo
+
+This product includes ideas, vocabulary, and an unmodified skill file from
+third-party MIT-licensed works. It does not vendor REA's TypeScript MCP
+catalog, REVENG exploit surfaces, or courseware.
+
+Third-party notices
+-------------------
+
+REA (Reverse Engineer Anything)
+Copyright (c) 2026 morluto
+License: MIT
+https://github.com/morluto/rea
+
+leanrea
+Copyright (c) 2026 AICodeKing
+License: MIT
+Vendored skill: third_party/leanrea/SKILL.md
+https://github.com/aicodeking/leanrea
+
+REVENG
+Copyright (c) 2025 oimiragieo
+License: MIT
+https://github.com/oimiragieo/reveng-main
+Only GA-safe patterns (result contracts, honesty, app-RE dispatch) are
+reimplemented here. Exploit generation and reconstructed third-party trees
+are not included.
