@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from reveng_debug import SCHEMA_VERSION as PACKAGE_SCHEMA
 
@@ -42,14 +42,26 @@ class EvidenceAuthority(StrEnum):
     ANALYST_INFERENCE = "analyst-inference"
 
 
+class SchemaGuarded(BaseModel):
+    schema_version: str = SCHEMA_VERSION
+
+    @field_validator("schema_version")
+    @classmethod
+    def _check_major(cls, value: str) -> str:
+        expected = SCHEMA_VERSION.split(".", 1)[0]
+        got = value.split(".", 1)[0]
+        if got != expected:
+            raise ValueError(f"unsupported schema_version {value!r}")
+        return value
+
+
 class Location(BaseModel):
     path: str | None = None
     offset: int | None = None
     symbol: str | None = None
 
 
-class EvidenceItem(BaseModel):
-    schema_version: str = SCHEMA_VERSION
+class EvidenceItem(SchemaGuarded):
     session_id: str
     confidence: ClaimConfidence
     authority: EvidenceAuthority = EvidenceAuthority.SHIPPED_ARTIFACT
@@ -77,8 +89,7 @@ class SupportRow(BaseModel):
     notes: str
 
 
-class SupportMatrix(BaseModel):
-    schema_version: str = SCHEMA_VERSION
+class SupportMatrix(SchemaGuarded):
     flags: FeatureFlags = Field(default_factory=FeatureFlags)
     rows: list[SupportRow] = Field(
         default_factory=lambda: [
@@ -157,10 +168,9 @@ class ToolProbe(BaseModel):
     coverage: str | None = None
 
 
-class WebsiteCapture(BaseModel):
+class WebsiteCapture(SchemaGuarded):
     """Normalized capture from static HTML or a gotcontext-chrome session dump."""
 
-    schema_version: str = SCHEMA_VERSION
     kind: str = "website-capture"
     backend: str = "static-html"
     url: str | None = None
@@ -175,8 +185,7 @@ class WebsiteCapture(BaseModel):
     images: list[str] = Field(default_factory=list)
 
 
-class InventoryResult(BaseModel):
-    schema_version: str = SCHEMA_VERSION
+class InventoryResult(SchemaGuarded):
     session_id: str
     target_kind: TargetKind
     original_path: str

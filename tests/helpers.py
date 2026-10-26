@@ -43,17 +43,42 @@ def build_minimal_pe32() -> bytes:
     return bytes(buf)
 
 
-def build_asar(members: dict[str, bytes]) -> bytes:
+def build_asar(
+    members: dict[str, bytes],
+    *,
+    unpacked: dict[str, int] | None = None,
+    links: dict[str, str] | None = None,
+) -> bytes:
     files: dict[str, object] = {}
     blobs = bytearray()
     for name, content in members.items():
-        files[name] = {"offset": str(len(blobs)), "size": len(content)}
+        _insert_asar_entry(files, name, {"offset": str(len(blobs)), "size": len(content)})
         blobs.extend(content)
+    for name, size in (unpacked or {}).items():
+        _insert_asar_entry(files, name, {"size": size, "unpacked": True})
+    for name, target in (links or {}).items():
+        _insert_asar_entry(files, name, {"link": target})
     header = json.dumps({"files": files}, separators=(",", ":")).encode("utf-8")
     pickle = struct.pack("<II", 4, len(header)) + header
     if len(pickle) % 4:
         pickle += b"\x00" * (4 - len(pickle) % 4)
     return pickle + bytes(blobs)
+
+
+def _insert_asar_entry(files: dict[str, object], name: str, spec: dict[str, object]) -> None:
+    parts = [part for part in name.replace("\\", "/").split("/") if part]
+    node: dict[str, object] = files
+    for part in parts[:-1]:
+        entry = node.get(part)
+        if not isinstance(entry, dict):
+            entry = {}
+            node[part] = entry
+        nested = entry.get("files")
+        if not isinstance(nested, dict):
+            nested = {}
+            entry["files"] = nested
+        node = nested
+    node[parts[-1]] = spec
 
 
 def write_js_app(root: Path) -> Path:

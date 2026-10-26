@@ -8,4 +8,4 @@
 
 Optional BYO engines (Ghidra, dumpbin, llvm-objdump, `@electron/asar`, `rea`, `reveng`) remain the user's install. This package never vendors them.
 
-Courseware under `F:\Course Ware\` is **not** redistributed. Methodology only: static vs dynamic split, PE/IAT inventory, provenance, default non-execution.
+Courseware under `F:\Course Ware\` is **not** redistributed. Local gitignored copies for agents live in `references/courseware/` (see that README). Methodology only: static vs dynamic split, PE/IAT inventory, provenance, default non-execution. Never commit PDFs.

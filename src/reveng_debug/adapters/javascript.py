@@ -9,6 +9,7 @@ from pathlib import Path
 from reveng_debug.contracts.models import (
     CapabilityStatus,
     ClaimConfidence,
+    EvidenceItem,
     InventoryResult,
     Location,
     TargetKind,
@@ -25,16 +26,19 @@ def inventory_javascript(path: Path, ledger: Ledger) -> InventoryResult:
     root = path if path.is_dir() else path.parent
     files = _js_files(path)
     package = None
+    evidence: list[EvidenceItem] = []
     pkg_path = root / "package.json" if path.is_dir() else path.parent / "package.json"
     if pkg_path.exists():
         package = json.loads(pkg_path.read_text(encoding="utf-8"))
-        ledger.record(
-            confidence=ClaimConfidence.SEEN,
-            kind="js.package",
-            statement=f"package.json name={package.get('name')} main={package.get('main')}",
-            tool="json",
-            command=f"read {pkg_path.name}",
-            location=Location(path=str(pkg_path)),
+        evidence.append(
+            ledger.record(
+                confidence=ClaimConfidence.SEEN,
+                kind="js.package",
+                statement=f"package.json name={package.get('name')} main={package.get('main')}",
+                tool="json",
+                command=f"read {pkg_path.name}",
+                location=Location(path=str(pkg_path)),
+            )
         )
     maps: list[str] = []
     ipc_hits: list[str] = []
@@ -45,28 +49,34 @@ def inventory_javascript(path: Path, ledger: Ledger) -> InventoryResult:
         if IPC.search(text):
             ipc_hits.append(str(file))
     if maps:
-        ledger.record(
-            confidence=ClaimConfidence.SEEN,
-            kind="js.sourcemap",
-            statement=f"sourceMappingURL hits={len(maps)}",
-            tool="slice",
-            metadata={"maps": maps[:20]},
+        evidence.append(
+            ledger.record(
+                confidence=ClaimConfidence.SEEN,
+                kind="js.sourcemap",
+                statement=f"sourceMappingURL hits={len(maps)}",
+                tool="slice",
+                metadata={"maps": maps[:20]},
+            )
         )
     else:
-        ledger.record(
-            confidence=ClaimConfidence.UNKNOWN,
-            kind="js.sourcemap",
-            statement="no sourceMappingURL seen in sampled files",
-            tool="slice",
-            limitations=["sampled first 80 JS files only"],
+        evidence.append(
+            ledger.record(
+                confidence=ClaimConfidence.UNKNOWN,
+                kind="js.sourcemap",
+                statement="no sourceMappingURL seen in sampled files",
+                tool="slice",
+                limitations=["sampled first 80 JS files only"],
+            )
         )
     if ipc_hits:
-        ledger.record(
-            confidence=ClaimConfidence.SEEN,
-            kind="js.ipc_surface",
-            statement=f"IPC/contextBridge surface in {len(ipc_hits)} files",
-            tool="slice",
-            metadata={"files": ipc_hits[:20]},
+        evidence.append(
+            ledger.record(
+                confidence=ClaimConfidence.SEEN,
+                kind="js.ipc_surface",
+                statement=f"IPC/contextBridge surface in {len(ipc_hits)} files",
+                tool="slice",
+                metadata={"files": ipc_hits[:20]},
+            )
         )
     return InventoryResult(
         session_id=ledger.store.session_id,
@@ -82,12 +92,14 @@ def inventory_javascript(path: Path, ledger: Ledger) -> InventoryResult:
             "sourcemaps": maps[:20],
             "ipc_hits": ipc_hits[:20],
         },
-        evidence=ledger.all(),
+        evidence=evidence,
         limitations=["static read only; hidden bundler dirs are included"],
     )
 
 
 def slice_text(path: Path, needle: str, window: int = 200, limit: int = 20) -> list[str]:
+    if not path.is_file():
+        return []
     text = path.read_text(encoding="utf-8", errors="replace")
     hits: list[str] = []
     start = 0

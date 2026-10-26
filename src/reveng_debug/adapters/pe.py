@@ -27,17 +27,41 @@ IMAGE_DLL_CHARACTERISTICS = {
 def inventory_pe(path: Path, ledger: Ledger) -> InventoryResult:
     try:
         lief = importlib.import_module("lief")
-        findings = _from_lief(lief, path)
-        engine = "lief"
-        coverage = "pe-headers,imports,exports,sections,dll-characteristics,strings"
-    except Exception:
+    except ImportError:
+        lief = None
+
+    downgrade: list[str] = []
+    if lief is None:
         findings = _from_pefile(path)
         engine = "pefile"
         coverage = (
             "pe-headers,imports,exports,sections,dll-characteristics,strings; no authenticode"
         )
+    else:
+        try:
+            findings = _from_lief(lief, path)
+            engine = "lief"
+            coverage = "pe-headers,imports,exports,sections,dll-characteristics,strings"
+        except Exception as exc:
+            findings = _from_pefile(path)
+            engine = "pefile"
+            coverage = (
+                "pe-headers,imports,exports,sections,dll-characteristics,strings; no authenticode"
+            )
+            downgrade = [f"lief parse failed ({exc}); reduced coverage via pefile fallback"]
 
     evidence: list[EvidenceItem] = []
+    if downgrade:
+        evidence.append(
+            ledger.record(
+                confidence=ClaimConfidence.SEEN,
+                kind="pe.engine",
+                statement=downgrade[0],
+                tool=engine,
+                command=f"lief parse {path.name}",
+                limitations=downgrade,
+            )
+        )
     machine = findings.get("machine")
     if machine is not None:
         evidence.append(
@@ -70,7 +94,7 @@ def inventory_pe(path: Path, ledger: Ledger) -> InventoryResult:
         coverage=coverage,
         findings=findings,
         evidence=evidence,
-        limitations=["static parse only; target was not executed"],
+        limitations=["static parse only; target was not executed", *downgrade],
     )
 
 
@@ -95,8 +119,10 @@ def _from_lief(lief: Any, path: Path) -> dict[str, Any]:
         for s in binary.sections
     ]
     chars = int(binary.optional_header.dll_characteristics)
+    machine, machine_name = _machine_fields(binary.header.machine)
     return {
-        "machine": str(binary.header.machine),
+        "machine": machine,
+        "machine_name": machine_name,
         "sections": sections,
         "imports": imports,
         "exports": exports,
@@ -108,39 +134,51 @@ def _from_lief(lief: Any, path: Path) -> dict[str, Any]:
 def _from_pefile(path: Path) -> dict[str, Any]:
     pefile = importlib.import_module("pefile")
     pe = pefile.PE(str(path), fast_load=False)
-    imports: list[dict[str, Any]] = []
-    for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", []) or []:
-        dll = _ascii(entry.dll)
-        names: list[str] = []
-        for imp in entry.imports:
-            if imp.name:
-                names.append(_ascii(imp.name))
-        imports.append({"dll": dll, "names": names[:200]})
-    exports: list[str] = []
-    directory = getattr(pe, "DIRECTORY_ENTRY_EXPORT", None)
-    if directory is not None:
-        for exp in directory.symbols:
-            if exp.name:
-                exports.append(_ascii(exp.name))
-    sections = [
-        {
-            "name": s.Name.decode("ascii", "replace").strip("\x00"),
-            "virtual_size": s.Misc_VirtualSize,
-            "sizeof_raw_data": s.SizeOfRawData,
+    try:
+        imports: list[dict[str, Any]] = []
+        for entry in getattr(pe, "DIRECTORY_ENTRY_IMPORT", []) or []:
+            dll = _ascii(entry.dll)
+            names: list[str] = []
+            for imp in entry.imports:
+                if imp.name:
+                    names.append(_ascii(imp.name))
+            imports.append({"dll": dll, "names": names[:200]})
+        exports: list[str] = []
+        directory = getattr(pe, "DIRECTORY_ENTRY_EXPORT", None)
+        if directory is not None:
+            for exp in directory.symbols:
+                if exp.name:
+                    exports.append(_ascii(exp.name))
+        sections = [
+            {
+                "name": s.Name.decode("ascii", "replace").strip("\x00"),
+                "virtual_size": s.Misc_VirtualSize,
+                "sizeof_raw_data": s.SizeOfRawData,
+            }
+            for s in pe.sections
+        ]
+        chars = int(pe.OPTIONAL_HEADER.DllCharacteristics)
+        machine, machine_name = _machine_fields(pe.FILE_HEADER.Machine)
+        return {
+            "machine": machine,
+            "machine_name": machine_name,
+            "sections": sections,
+            "imports": imports,
+            "exports": exports[:200],
+            "security_flags": _flags(chars),
+            "strings": _strings(path.read_bytes()),
         }
-        for s in pe.sections
-    ]
-    chars = int(pe.OPTIONAL_HEADER.DllCharacteristics)
-    machine = hex(int(pe.FILE_HEADER.Machine))
-    pe.close()
-    return {
-        "machine": machine,
-        "sections": sections,
-        "imports": imports,
-        "exports": exports[:200],
-        "security_flags": _flags(chars),
-        "strings": _strings(path.read_bytes()),
-    }
+    finally:
+        # Released on every path: a leaked PE mmap keeps the target file locked
+        # on Windows and is a suspected contributor to temp-tree churn at exit.
+        pe.close()
+
+
+def _machine_fields(raw: object) -> tuple[int, str]:
+    value = getattr(raw, "value", raw)
+    number = value if isinstance(value, int) else int(str(value), 0)
+    name = hex(number) if isinstance(raw, int) else str(raw)
+    return number, name
 
 
 def _ascii(value: object) -> str:

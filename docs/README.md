@@ -12,5 +12,7 @@ Diátaxis doors:
 | Explanation | [Architecture](explanation/architecture-overview.md) |
 | Reference | [CLI](reference/cli.md) · [MCP](reference/mcp-tools.md) |
 | Support | [Support matrix](support/support-matrix.md) · [Honesty](support/honesty-rules.md) |
+| Skills (router + courseware methodology) | [skills/README.md](../skills/README.md) |
+| Local courseware (gitignored PDFs) | [references/courseware/README.md](../references/courseware/README.md) |
 
 Traceability: every module names its Spec ID in the header. PRD: authorized debugging of owned/authorized software. Design: [SPEC-RD-000](superpowers/specs/2026-10-25-reveng-debug-design.md).

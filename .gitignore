@@ -74,3 +74,8 @@ models/*.onnx
 *.pdf
 reports/
 reconstructed_source_tree/
+
+# Local operator courseware (never commit; agents may read)
+references/courseware/**
+!references/courseware/README.md
+!references/courseware/INDEX.md

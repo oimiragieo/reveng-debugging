@@ -112,7 +112,17 @@ def app_re(path: Path, session_id: str | None = None) -> InventoryResult:
 
 def slice_file(path: Path, needle: str, session_id: str | None = None) -> dict[str, Any]:
     store, admitted = open_session(session_id, path)
-    hits = slice_text(admitted if admitted.is_file() else _first_file(admitted, path.name), needle)
+    target = admitted if admitted.is_file() else _first_file(admitted, path.name)
+    if not target.is_file():
+        return {
+            "session_id": store.session_id,
+            "path": str(admitted),
+            "needle": needle,
+            "hits": [],
+            "confidence": "unknown",
+            "limitations": [f"slice needs a file, got directory {admitted}"],
+        }
+    hits = slice_text(target, needle)
     return {
         "session_id": store.session_id,
         "path": str(admitted),
@@ -123,9 +133,10 @@ def slice_file(path: Path, needle: str, session_id: str | None = None) -> dict[s
 
 
 def session_show(session_id: str) -> dict[str, Any]:
-    store = SessionStore(session_id=session_id)
+    store = SessionStore(session_id=session_id, create=False)
     data = store.show()
     data["evidence"] = [item.model_dump() for item in store.read_evidence()]
+    data["corrupt_ledger_lines"] = store.skipped_ledger_lines
     return data
 
 
@@ -141,7 +152,7 @@ def clone_website(target: str, session_id: str | None = None) -> InventoryResult
 
 
 def evidence_get(session_id: str) -> list[dict[str, Any]]:
-    store = SessionStore(session_id=session_id)
+    store = SessionStore(session_id=session_id, create=False)
     return [item.model_dump() for item in store.read_evidence()]
 
 

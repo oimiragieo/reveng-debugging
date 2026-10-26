@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import uuid
@@ -11,13 +13,22 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from reveng_debug.contracts.models import EvidenceItem
 
 ENV_ROOT = "REVENG_DEBUG_STATE_ROOT"
+_SESSION_ID = re.compile(r"^[0-9a-f]{32}$")
 
 
 def new_session_id() -> str:
     return uuid.uuid4().hex
+
+
+def require_session_id(session_id: str) -> str:
+    if _SESSION_ID.fullmatch(session_id) is None:
+        raise ValueError(f"illegal session id {session_id!r}")
+    return session_id
 
 
 def default_root() -> Path:
@@ -28,14 +39,31 @@ def default_root() -> Path:
 
 
 class SessionStore:
-    def __init__(self, session_id: str | None = None, root: Path | None = None) -> None:
-        self.session_id = session_id or new_session_id()
-        self.root = root or default_root()
-        self.dir = self.root / self.session_id
+    def __init__(
+        self,
+        session_id: str | None = None,
+        root: Path | None = None,
+        *,
+        create: bool = True,
+    ) -> None:
+        # An explicitly supplied id is always validated; only an omitted one is generated.
+        # (`session_id or new_session_id()` would accept "" and silently invent a session.)
+        self.session_id = new_session_id() if session_id is None else require_session_id(session_id)
+        self.root = (root or default_root()).resolve()
+        self.dir = (self.root / self.session_id).resolve()
+        try:
+            self.dir.relative_to(self.root)
+        except ValueError as exc:
+            raise ValueError(f"illegal session id {session_id!r}") from exc
         self.work = self.dir / "work"
         self.artifacts = self.dir / "artifacts"
         self.session_path = self.dir / "session.json"
         self.ledger_path = self.dir / "ledger.jsonl"
+        self.skipped_ledger_lines = 0
+        if not create:
+            if not self.session_path.is_file():
+                raise FileNotFoundError(f"no such session {self.session_id}")
+            return
         self.dir.mkdir(parents=True, exist_ok=True)
         self.work.mkdir(exist_ok=True)
         self.artifacts.mkdir(exist_ok=True)
@@ -46,7 +74,8 @@ class SessionStore:
         source = source.resolve()
         if not source.exists():
             raise FileNotFoundError(source)
-        dest = self.work / source.name
+        digest = hashlib.sha256(str(source).encode("utf-8")).hexdigest()[:8]
+        dest = self.work / f"{digest}_{source.name}"
         if source.is_dir():
             if dest.exists():
                 shutil.rmtree(dest)
@@ -68,12 +97,17 @@ class SessionStore:
             handle.write(item.model_dump_json() + "\n")
 
     def read_evidence(self) -> list[EvidenceItem]:
+        self.skipped_ledger_lines = 0
         if not self.ledger_path.exists():
             return []
         items: list[EvidenceItem] = []
         for line in self.ledger_path.read_text(encoding="utf-8").splitlines():
-            if line.strip():
+            if not line.strip():
+                continue
+            try:
                 items.append(EvidenceItem.model_validate_json(line))
+            except ValidationError:
+                self.skipped_ledger_lines += 1
         return items
 
     def show(self) -> dict[str, Any]:

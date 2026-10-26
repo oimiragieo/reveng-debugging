@@ -110,7 +110,14 @@ def tui() -> None:
 @session_app.command("show")
 def session_show(session_id: str = typer.Argument(...)) -> None:
     """Show session metadata and evidence."""
-    _emit(service.session_show(session_id))
+    try:
+        payload = service.session_show(session_id)
+    except (FileNotFoundError, ValueError) as exc:
+        # A mistyped or malformed id is a caller error, not a crash: emit the same
+        # JSON shape the rest of the CLI emits instead of a Python traceback.
+        _emit({"error": str(exc), "session_id": session_id})
+        raise typer.Exit(code=2) from None
+    _emit(payload)
 
 
 @app.command("mcp")

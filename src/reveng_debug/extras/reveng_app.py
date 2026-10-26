@@ -29,7 +29,6 @@ UNSUPPORTED_HINT = (
     "Install the reveng extra or put the reveng CLI on PATH. "
     "Optional BYO reverse-engineer-app is unsupported in this environment."
 )
-_FORBIDDEN_TOKENS = ("generate-exploit", "detect-malware", "malware")
 _STATIC_KWARGS: dict[str, Any] = {
     "language": "auto",
     "run_deobfuscator": False,
@@ -57,7 +56,7 @@ def run_reveng_app_re(path: Path, ledger: Ledger) -> InventoryResult:
         kind="reveng.app_re",
         statement=f"reverse-engineer-app wrote {output_dir}",
         tool="reveng",
-        command=f"reveng {GA_SURFACE} {admitted} --output-dir {output_dir}",
+        command=f"reveng --output-dir {output_dir} {GA_SURFACE} {admitted}",
         location=Location(path=str(admitted)),
         limitations=[
             "opt-in BYO; copy-workspace paths only",
@@ -123,13 +122,7 @@ def _load_app_re_framework() -> object | None:
 
 def _call_reverse(reverse: Callable[..., Any], admitted: Path, output_dir: Path) -> object:
     kwargs = _static_call_kwargs(reverse)
-    try:
-        return reverse(str(admitted), str(output_dir), **kwargs)
-    except TypeError:
-        try:
-            return reverse(str(admitted), str(output_dir), run_deobfuscator=False)
-        except TypeError:
-            return reverse(str(admitted), str(output_dir))
+    return reverse(str(admitted), str(output_dir), **kwargs)
 
 
 def _static_call_kwargs(reverse: Callable[..., Any]) -> dict[str, Any]:
@@ -159,14 +152,20 @@ def _serialize_python_result(result: object, output_dir: Path) -> dict[str, Any]
 
 def _run_subprocess(admitted: Path, output_dir: Path) -> dict[str, Any]:
     binary = shutil.which("reveng") or shutil.which("reveng.exe") or "reveng"
-    cmd = [binary, GA_SURFACE, str(admitted), "--output-dir", str(output_dir)]
-    joined = " ".join(cmd).lower()
-    if any(token in joined for token in _FORBIDDEN_TOKENS):
-        raise RuntimeError("refusing non-GA reveng surface")
+    # `reveng` requires global options BEFORE the subcommand, and its
+    # `reverse-engineer-app` subcommand has no --output-dir of its own
+    # (`reveng reverse-engineer-app --help` lists only --language, --input-root,
+    # --skip-pattern, --max-snippets, --snippet-context, --run-deobfuscator).
+    # Putting the flag after the subcommand fails with rc=2 "unrecognized arguments".
+    # Only GA_SURFACE is ever placed here; that constraint is held by construction
+    # and locked by test_app_re_cli_argv_shape.
+    cmd = [binary, "--output-dir", str(output_dir), GA_SURFACE, str(admitted)]
     completed = subprocess.run(
         cmd,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=APP_RE_TIMEOUT_SECONDS,
         shell=False,
         check=False,
@@ -238,7 +237,7 @@ def _failed(
         kind="reveng.app_re",
         statement=statement,
         tool="reveng",
-        command=f"reveng {GA_SURFACE} {admitted} --output-dir {output_dir}",
+        command=f"reveng --output-dir {output_dir} {GA_SURFACE} {admitted}",
         location=Location(path=str(admitted)),
         limitations=[statement, "target was not executed"],
     )

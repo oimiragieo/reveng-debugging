@@ -18,18 +18,22 @@ from reveng_debug.storage.asar import AsarError, extract_asar
 
 def inventory_electron(path: Path, ledger: Ledger) -> InventoryResult:
     extracted = path
+    unpacked: list[str] = []
+    asar_item = None
     if path.is_file() and path.suffix.lower() == ".asar":
         dest = ledger.store.artifacts / "asar"
         try:
-            extracted = extract_asar(path, dest)
-        except AsarError as exc:
-            ledger.record(
-                confidence=ClaimConfidence.SEEN,
-                kind="electron.asar",
-                statement=f"asar extract refused: {exc}",
-                tool="asar-python",
-                limitations=["unsafe or malformed archive"],
-            )
+            extracted, unpacked = extract_asar(path, dest)
+        except (AsarError, OSError) as exc:
+            evidence = [
+                ledger.record(
+                    confidence=ClaimConfidence.SEEN,
+                    kind="electron.asar",
+                    statement=f"asar extract refused: {exc}",
+                    tool="asar-python",
+                    limitations=["unsafe or malformed archive"],
+                )
+            ]
             return InventoryResult(
                 session_id=ledger.store.session_id,
                 target_kind=TargetKind.ELECTRON,
@@ -39,10 +43,10 @@ def inventory_electron(path: Path, ledger: Ledger) -> InventoryResult:
                 engine="asar-python",
                 coverage="none",
                 findings={"error": str(exc)},
-                evidence=ledger.all(),
+                evidence=evidence,
                 limitations=[str(exc)],
             )
-        ledger.record(
+        asar_item = ledger.record(
             confidence=ClaimConfidence.SEEN,
             kind="electron.asar",
             statement=f"extracted asar into {extracted}",
@@ -54,4 +58,14 @@ def inventory_electron(path: Path, ledger: Ledger) -> InventoryResult:
     inner.target_kind = TargetKind.ELECTRON
     inner.engine = "asar-python+javascript-static"
     inner.original_path = str(path)
+    if asar_item is not None:
+        inner.evidence = [asar_item, *inner.evidence]
+    if unpacked:
+        inner.limitations = [
+            *inner.limitations,
+            (
+                f"{len(unpacked)} unpacked members not extracted "
+                "(app.asar.unpacked); extract separately with @electron/asar"
+            ),
+        ]
     return inner

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 from reveng_debug import service
 
@@ -165,27 +165,23 @@ def dispatch(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
     raise ValueError(f"unknown tool {name}")
 
 
-def _read_message() -> dict[str, Any] | None:
-    headers: dict[str, str] = {}
+def _read_message(stream: BinaryIO | None = None) -> dict[str, Any] | None:
+    handle = stream if stream is not None else sys.stdin.buffer
     while True:
-        line = sys.stdin.buffer.readline()
+        line = handle.readline()
         if not line:
             return None
-        if line in {b"\r\n", b"\n"}:
-            break
-        key, _, value = line.decode("utf-8").partition(":")
-        headers[key.strip().lower()] = value.strip()
-    length = int(headers.get("content-length", "0"))
-    body = sys.stdin.buffer.read(length)
-    payload: dict[str, Any] = json.loads(body.decode("utf-8"))
-    return payload
+        stripped = line.strip()
+        if not stripped:
+            continue
+        payload: dict[str, Any] = json.loads(stripped.decode("utf-8"))
+        return payload
 
 
-def _write_message(payload: dict[str, Any]) -> None:
-    blob = json.dumps(payload).encode("utf-8")
-    sys.stdout.buffer.write(f"Content-Length: {len(blob)}\r\n\r\n".encode("ascii"))
-    sys.stdout.buffer.write(blob)
-    sys.stdout.buffer.flush()
+def _write_message(payload: dict[str, Any], stream: BinaryIO | None = None) -> None:
+    handle = stream if stream is not None else sys.stdout.buffer
+    handle.write(json.dumps(payload, separators=(",", ":")).encode("utf-8") + b"\n")
+    handle.flush()
 
 
 def handle(message: dict[str, Any]) -> dict[str, Any] | None:
@@ -201,6 +197,8 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
                 "serverInfo": {"name": "reveng-debug", "version": "0.1.0"},
             },
         }
+    if method == "ping":
+        return {"jsonrpc": "2.0", "id": msg_id, "result": {}}
     if method == "notifications/initialized":
         return None
     if method == "tools/list":
@@ -228,14 +226,27 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def main() -> None:
+def main(stdin: BinaryIO | None = None, stdout: BinaryIO | None = None) -> None:
+    in_stream = stdin if stdin is not None else sys.stdin.buffer
+    out_stream = stdout if stdout is not None else sys.stdout.buffer
     while True:
-        message = _read_message()
+        try:
+            message = _read_message(in_stream)
+        except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as exc:
+            _write_message(
+                {
+                    "jsonrpc": "2.0",
+                    "id": None,
+                    "error": {"code": -32700, "message": str(exc)},
+                },
+                out_stream,
+            )
+            continue
         if message is None:
             return
         reply = handle(message)
         if reply is not None:
-            _write_message(reply)
+            _write_message(reply, out_stream)
 
 
 if __name__ == "__main__":

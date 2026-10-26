@@ -13,6 +13,7 @@ from reveng_debug.contracts.models import (
     CapabilityStatus,
     ClaimConfidence,
     EvidenceAuthority,
+    EvidenceItem,
     InventoryResult,
     Location,
     TargetKind,
@@ -133,27 +134,31 @@ def clone_website(source: Path | WebsiteCapture, ledger: Ledger) -> InventoryRes
 
     live = capture.backend == "gotcontext-chrome"
     authority = EvidenceAuthority.CONTROLLED_REPLAY if live else EvidenceAuthority.SHIPPED_ARTIFACT
-    ledger.record(
-        confidence=ClaimConfidence.SEEN,
-        kind="website.clone",
-        statement=(
-            f"cloned {capture.url or 'local snapshot'} via {capture.backend}; "
-            f"{len(capture.scripts)} scripts, {len(capture.stylesheets)} stylesheets"
-        ),
-        tool=capture.backend,
-        command="reveng-debug clone-website",
-        location=Location(path=str(clone_dir)),
-        authority=authority,
-        limitations=_limitations(capture),
-        metadata={"title": capture.title},
-    )
-    if not capture.tokens:
+    evidence: list[EvidenceItem] = [
         ledger.record(
-            confidence=ClaimConfidence.UNKNOWN,
-            kind="website.tokens",
-            statement="no design tokens in this capture; run gotcontext extract_design_tokens",
-            tool="gotcontext-chrome",
-            limitations=["static HTML has no computed CSS variables"],
+            confidence=ClaimConfidence.SEEN,
+            kind="website.clone",
+            statement=(
+                f"cloned {capture.url or 'local snapshot'} via {capture.backend}; "
+                f"{len(capture.scripts)} scripts, {len(capture.stylesheets)} stylesheets"
+            ),
+            tool=capture.backend,
+            command="reveng-debug clone-website",
+            location=Location(path=str(clone_dir)),
+            authority=authority,
+            limitations=_limitations(capture),
+            metadata={"title": capture.title},
+        )
+    ]
+    if not capture.tokens:
+        evidence.append(
+            ledger.record(
+                confidence=ClaimConfidence.UNKNOWN,
+                kind="website.tokens",
+                statement="no design tokens in this capture; run gotcontext extract_design_tokens",
+                tool="gotcontext-chrome",
+                limitations=["static HTML has no computed CSS variables"],
+            )
         )
     findings: dict[str, Any] = {
         "url": capture.url,
@@ -175,7 +180,7 @@ def clone_website(source: Path | WebsiteCapture, ledger: Ledger) -> InventoryRes
         engine=capture.backend,
         coverage="html-assets,tokens,components,reconstruction-brief",
         findings=findings,
-        evidence=ledger.all(),
+        evidence=evidence,
         limitations=_limitations(capture),
     )
 

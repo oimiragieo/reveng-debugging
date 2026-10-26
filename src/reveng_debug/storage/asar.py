@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import stat
 import struct
 from collections.abc import Iterator
@@ -16,6 +17,38 @@ class AsarError(ValueError):
 
 
 def iter_asar_entries(archive: Path) -> Iterator[tuple[str, bytes]]:
+    for rel, blob, _unpacked in _iter_members(archive):
+        if not _unpacked:
+            yield rel, blob
+
+
+def extract_asar(archive: Path, dest: Path) -> tuple[Path, list[str]]:
+    """Extract packed members into ``dest``, returning ``(dest, unpacked_rels)``.
+
+    ``dest`` is **deleted and recreated** first, so a stale file cannot collide with a
+    directory member. Pass a dedicated path (``artifacts/asar``), never a directory that
+    also holds other session artifacts.
+    """
+    if dest.exists():
+        shutil.rmtree(dest)
+    dest.mkdir(parents=True, exist_ok=True)
+    dest_resolved = dest.resolve()
+    unpacked: list[str] = []
+    for rel, blob, is_unpacked in _iter_members(archive):
+        if is_unpacked:
+            unpacked.append(rel)
+            continue
+        target = _safe_join(dest_resolved, rel)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(blob)
+        # Refuse to keep a symlink if the OS somehow created one.
+        if target.is_symlink() or stat.S_ISLNK(target.lstat().st_mode):
+            target.unlink()
+            raise AsarError(f"refusing symlink member {rel}")
+    return dest, unpacked
+
+
+def _iter_members(archive: Path) -> Iterator[tuple[str, bytes, bool]]:
     data = archive.read_bytes()
     if len(data) < 16:
         raise AsarError("asar too small")
@@ -38,30 +71,19 @@ def iter_asar_entries(archive: Path) -> Iterator[tuple[str, bytes]]:
     yield from _walk(files, "", data, aligned)
 
 
-def extract_asar(archive: Path, dest: Path) -> Path:
-    dest.mkdir(parents=True, exist_ok=True)
-    dest_resolved = dest.resolve()
-    for rel, blob in iter_asar_entries(archive):
-        target = _safe_join(dest_resolved, rel)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(blob)
-        # Refuse to keep a symlink if the OS somehow created one.
-        if target.is_symlink() or stat.S_ISLNK(target.lstat().st_mode):
-            target.unlink()
-            raise AsarError(f"refusing symlink member {rel}")
-    return dest
-
-
 def _walk(
     node: dict[str, Any], prefix: str, data: bytes, files_offset: int
-) -> Iterator[tuple[str, bytes]]:
+) -> Iterator[tuple[str, bytes, bool]]:
     for name, spec in node.items():
         _assert_safe_name(name)
         rel = f"{prefix}/{name}" if prefix else name
         if not isinstance(spec, dict):
             raise AsarError(f"bad asar entry {rel}")
-        if spec.get("link") or spec.get("unpacked"):
-            raise AsarError(f"refusing link/unpacked member {rel}")
+        if spec.get("unpacked"):
+            yield rel.replace("\\", "/"), b"", True
+            continue
+        if spec.get("link"):
+            raise AsarError(f"refusing link member {rel}")
         nested = spec.get("files")
         if isinstance(nested, dict):
             yield from _walk(nested, rel, data, files_offset)
@@ -74,7 +96,7 @@ def _walk(
         end = start + int(size)
         if start < files_offset or end > len(data) or end < start:
             raise AsarError(f"asar slice out of range for {rel}")
-        yield rel.replace("\\", "/"), data[start:end]
+        yield rel.replace("\\", "/"), data[start:end], False
 
 
 def _assert_safe_name(name: str) -> None:

@@ -36,7 +36,8 @@ def identify_target(path: Path) -> TargetKind:
             return TargetKind.WEBSITE
     if suffix in {".js", ".mjs", ".cjs", ".ts"}:
         return TargetKind.JAVASCRIPT
-    header = path.read_bytes()[:64]
+    with path.open("rb") as handle:
+        header = handle.read(64)
     lowered = header.lstrip().lower()
     if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
         return TargetKind.WEBSITE

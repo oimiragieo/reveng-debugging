@@ -29,10 +29,10 @@ Scope: Public Python debugging toolkit with contracts, workspace, PE/ELF/Mach-O/
   EXPECT: github.com
   EVIDENCE: origin https://github.com/oimiragieo/reveng-debugging.git PUBLIC
 
-- [x] G7: Exclusions honored (no exploits package, no courseware PDFs, no reconstructed trees)
-  CHECK: python -c "..."
-  EXPECT: clean
-  EVIDENCE: clean (no generate-exploit files outside docs)
+- [x] G7: Exclusions honored (no exploits package, no courseware PDFs in git, no reconstructed trees)
+  CHECK: git check-ignore references/courseware/*.pdf ; git ls-files "*.pdf"
+  EXPECT: PDFs ignored; none tracked
+  EVIDENCE: `*.pdf` and `references/courseware/**` gitignored; local copies for agents only
 
 - [x] G8: Wave 2 surfaces
   CHECK: ELF/Mach-O inventory, `reveng-debug ghidra`, `reveng-debug app-re`, `reveng-debug tui`

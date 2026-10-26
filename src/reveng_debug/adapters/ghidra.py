@@ -139,9 +139,9 @@ def run_ghidra_headless(
     )
     safe_project.mkdir(parents=True, exist_ok=True)
     json_out.parent.mkdir(parents=True, exist_ok=True)
+    json_out.unlink(missing_ok=True)
 
     run = invoke_headless(command, timeout=HEADLESS_TIMEOUT_SEC)
-    functions = _load_functions(json_out, run.stdout)
     display_cmd = " ".join(command)
     static_limit = "static analysis only; target was not executed"
 
@@ -178,8 +178,8 @@ def run_ghidra_headless(
             engine=ENGINE,
             coverage="functions",
             findings={
-                "functions": functions,
-                "function_count": len(functions),
+                "functions": [],
+                "function_count": 0,
                 "headless": str(headless),
                 "project_dir": str(safe_project),
                 "returncode": run.returncode,
@@ -191,6 +191,7 @@ def run_ghidra_headless(
             limitations=fail_limits,
         )
 
+    functions = _load_functions(json_out, run.stdout)
     statement = f"headless listed {len(functions)} functions"
     evidence = ledger.record(
         confidence=ClaimConfidence.SEEN if functions else ClaimConfidence.UNKNOWN,
@@ -363,10 +364,16 @@ def _parse_functions(raw: str) -> list[dict[str, str]]:
 
 
 def _extract_json_array(text: str) -> str | None:
-    start = text.find("[")
-    end = text.rfind("]")
-    if start >= 0 and end > start:
-        return text[start : end + 1]
+    decoder = json.JSONDecoder()
+    for idx in range(len(text) - 1, -1, -1):
+        if text[idx] != "[":
+            continue
+        try:
+            obj, end = decoder.raw_decode(text, idx)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, list):
+            return text[idx:end]
     return None
 
 

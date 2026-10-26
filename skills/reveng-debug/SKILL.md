@@ -9,6 +9,7 @@ Derived from leanrea (MIT, AICodeKing) with a Windows-first first-move.
 Original: `third_party/leanrea/SKILL.md`.
 
 ## Rules
+- Local methodology PDFs (gitignored): `references/courseware/`. Read for PE/IAT/static-vs-dynamic ideas. Do not paste book text. Do not implement exploits from CEH/unpacking papers.
 - Work on a copy. `reveng-debug inventory PATH` copies into `%TEMP%\reveng-debug\<session>\`. Never mutate the original.
 - Route by magic bytes first (`reveng-debug identify PATH`). Cheapest inventory next. Do not decompile unless the operator opts into `reveng-debug ghidra`.
 - Search extracted trees including hidden bundler dirs (`.webpack/`, `.vite/`). Prefer `tg` in this repo; on extracted trees include ignored/hidden files.
@@ -77,6 +78,12 @@ Attach visually at **http://127.0.0.1:8092/attach** (this host). omega-vision RE
 | Live website DOM | gotcontext-chrome capture sequence, then `clone-website` on the JSON |
 | Installed `reveng` GA | opt-in `reveng-debug app-re` on the session copy |
 | Running native process | `unsupported` |
+
+## Courseware methodology skills
+Original distillations (not copied book text) live next to this file. Start at
+[`../README.md`](../README.md). Use `authorized-scope-ethics` first. Use
+`pma-static-triage` / `goppit-pe-layout` / `pe-iat-capability-map` for PE work.
+Never apply CEH attack modules; those have no skills.
 
 ## MCP (thin catalog, not REA's 207)
 `doctor` `identify` `inventory` `slice` `session_show` `evidence_get` `clone_website` `ghidra` `app_re`
