@@ -27,10 +27,10 @@ Scope: Public Python debugging toolkit with contracts, workspace, PE/JS inventor
   EXPECT: Success
   EVIDENCE: Success: no issues found in 19 source files
 
-- [ ] G6: Public git remote exists
+- [x] G6: Public git remote exists
   CHECK: git remote -v
   EXPECT: github.com
-  EVIDENCE: pending
+  EVIDENCE: origin https://github.com/oimiragieo/reveng-debugging.git PUBLIC
 
 - [x] G7: Exclusions honored (no exploits package, no courseware PDFs, no reconstructed trees)
   CHECK: python -c "..."
