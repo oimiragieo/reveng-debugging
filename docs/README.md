@@ -1,7 +1,7 @@
 # reveng-debug documentation
 
 **Product:** `reveng-debug` 0.1.0 (MVP)  
-**Maturity:** preview — PE/JS/Electron static inventory supported; Ghidra and live attach unsupported.
+**Maturity:** preview — PE/JS/Electron static inventory and website clone supported; Ghidra and live native attach unsupported.
 
 Diátaxis doors:
 

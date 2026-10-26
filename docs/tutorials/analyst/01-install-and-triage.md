@@ -9,3 +9,5 @@
 5. Read `evidence` in the JSON: every statement is seen, inferred, or unknown.
 
 If identify says `elf` or `macho`, inventory will return `unsupported` (Wave 2).
+
+For a website: save HTML or a gotcontext-chrome `capture.json`, then `reveng-debug clone-website PATH`.

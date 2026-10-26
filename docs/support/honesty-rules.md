@@ -7,4 +7,5 @@
 3. `pefile` fallback must advertise reduced coverage versus LIEF.
 4. Doctor must not print “absent”.
 5. Do not vendor exploits, malware, reconstructed proprietary trees, or courseware PDFs.
-6. Do not execute the target unless a future flag is supported and the operator opts in.
+6. Do not execute native targets unless a future flag is supported and the operator opts in.
+7. Website clone captures visible structure only. Static fetch ≠ live DOM. Live tokens/assets require a gotcontext-chrome capture JSON.

@@ -23,6 +23,9 @@ def test_identify_pe_js_asar(tmp_path: Path) -> None:
     elf = tmp_path / "elf.bin"
     elf.write_bytes(b"\x7fELF\x02\x01")
     assert identify_target(elf) is TargetKind.ELF
+    html = tmp_path / "page.html"
+    html.write_text("<!doctype html><title>x</title>", encoding="utf-8")
+    assert identify_target(html) is TargetKind.WEBSITE
 
 
 def test_doctor_never_says_absent() -> None:
@@ -30,6 +33,7 @@ def test_doctor_never_says_absent() -> None:
     names = {p.name for p in probes}
     assert "pefile" in names
     assert "ghidra" in names
+    assert "gotcontext_chrome" in names
     ghidra = next(p for p in probes if p.name == "ghidra")
     assert ghidra.status in {
         CapabilityStatus.UNKNOWN,

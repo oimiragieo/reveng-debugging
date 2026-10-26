@@ -33,7 +33,9 @@ def test_support_matrix_marks_dynamic_and_ghidra_unsupported() -> None:
     assert by_name["dynamic_attach"] is CapabilityStatus.UNSUPPORTED
     assert by_name["ghidra_headless"] is CapabilityStatus.UNSUPPORTED
     assert by_name["pe_inventory"] is CapabilityStatus.PRESENT
+    assert by_name["website_clone"] is CapabilityStatus.PRESENT
     assert matrix.flags == FeatureFlags()
+    assert matrix.flags.gotcontext_chrome is True
 
 
 def test_missing_is_not_absent_in_schema() -> None:

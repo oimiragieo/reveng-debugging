@@ -8,7 +8,7 @@ from reveng_debug.mcp import TOOLS, dispatch, handle
 from tests.helpers import build_minimal_pe32
 
 
-def test_tools_catalog_is_six() -> None:
+def test_tools_catalog_includes_clone_website() -> None:
     names = [t["name"] for t in TOOLS]
     assert names == [
         "doctor",
@@ -17,6 +17,7 @@ def test_tools_catalog_is_six() -> None:
         "slice",
         "session_show",
         "evidence_get",
+        "clone_website",
     ]
 
 
@@ -26,7 +27,7 @@ def test_handle_initialize_and_list() -> None:
     assert init["result"]["serverInfo"]["name"] == "reveng-debug"
     listed = handle({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
     assert listed is not None
-    assert len(listed["result"]["tools"]) == 6
+    assert len(listed["result"]["tools"]) == 7
 
 
 def test_dispatch_identify(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

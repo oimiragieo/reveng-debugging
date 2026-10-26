@@ -13,6 +13,7 @@ from reveng_debug.contracts.models import (
     SupportRow,
     TargetKind,
     ToolProbe,
+    WebsiteCapture,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "SupportRow",
     "TargetKind",
     "ToolProbe",
+    "WebsiteCapture",
 ]

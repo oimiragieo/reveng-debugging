@@ -15,6 +15,7 @@ def test_help_lists_doctor() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "doctor" in result.stdout
+    assert "clone-website" in result.stdout
 
 
 def test_doctor_identify_inventory_slice(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -39,3 +40,13 @@ def test_doctor_identify_inventory_slice(tmp_path: Path, monkeypatch: pytest.Mon
     sliced = runner.invoke(app, ["slice", str(app_dir / "main.js"), "ipcMain"])
     assert sliced.exit_code == 0
     assert "hits" in sliced.stdout
+
+    html = tmp_path / "site.html"
+    html.write_text(
+        "<!doctype html><title>Demo</title><script src='a.js'></script>",
+        encoding="utf-8",
+    )
+    cloned = runner.invoke(app, ["clone-website", str(html)])
+    assert cloned.exit_code == 0, cloned.stdout
+    assert "website" in cloned.stdout
+    assert "clone_dir" in cloned.stdout

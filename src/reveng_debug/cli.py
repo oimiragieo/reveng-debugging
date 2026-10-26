@@ -59,6 +59,16 @@ def inventory(
     _emit(result.model_dump())
 
 
+@app.command("clone-website")
+def clone_website(
+    target: str = typer.Argument(..., help="Local HTML/capture JSON path, or http(s) URL"),
+    session_id: str | None = typer.Option(None, "--session-id"),
+) -> None:
+    """Clone a website snapshot (static HTML or gotcontext-chrome capture JSON)."""
+    result = service.clone_website(target, session_id=session_id)
+    _emit(result.model_dump())
+
+
 @app.command()
 def slice(
     path: Path = typer.Argument(..., exists=True, readable=True),
@@ -77,7 +87,7 @@ def session_show(session_id: str = typer.Argument(...)) -> None:
 
 @app.command("mcp")
 def mcp_stdio() -> None:
-    """Serve the six-tool MCP stdio catalog."""
+    """Serve the thin MCP stdio catalog including clone_website."""
     from reveng_debug.mcp import main as mcp_main
 
     mcp_main()

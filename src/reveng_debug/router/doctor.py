@@ -19,7 +19,7 @@ CANDIDATES: tuple[tuple[str, tuple[str, ...], str], ...] = (
 
 
 def probe_tools() -> list[ToolProbe]:
-    probes = [_probe_lief(), _probe_pefile(), _probe_reveng_module()]
+    probes = [_probe_lief(), _probe_pefile(), _probe_reveng_module(), _probe_gotcontext()]
     for name, binaries, note in CANDIDATES:
         found = _which_any(binaries)
         if found:
@@ -82,6 +82,22 @@ def _probe_reveng_module() -> ToolProbe:
         name="reveng_module",
         status=CapabilityStatus.PRESENT,
         detail="importable; passthrough remains opt-in and copy-workspace only",
+    )
+
+
+def _probe_gotcontext() -> ToolProbe:
+    return ToolProbe(
+        name="gotcontext_chrome",
+        status=CapabilityStatus.UNKNOWN,
+        detail=(
+            "live website clone backend; presence is the operator MCP session, "
+            "not PATH. Follow skills/reveng-debug/SKILL.md capture sequence"
+        ),
+        coverage=(
+            "tabs_context_mcp,tabs_create_mcp,navigate,get_page_text,"
+            "extract_design_tokens,tab_page_assets,decompose_dom_components,"
+            "javascript_tool,capture_visual_frame"
+        ),
     )
 
 

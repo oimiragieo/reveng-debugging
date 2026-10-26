@@ -18,6 +18,7 @@ class TargetKind(StrEnum):
     MACHO = "macho"
     JAVASCRIPT = "javascript"
     ELECTRON = "electron"
+    WEBSITE = "website"
     UNKNOWN = "unknown"
 
 
@@ -66,6 +67,7 @@ class FeatureFlags(BaseModel):
     ghidra_byo: bool = False
     reveng_extra: bool = False
     rea_passthrough: bool = False
+    gotcontext_chrome: bool = True
 
 
 class SupportRow(BaseModel):
@@ -93,6 +95,14 @@ class SupportMatrix(BaseModel):
                 workflow="electron_asar",
                 status=CapabilityStatus.PRESENT,
                 notes="Path-safe extract into session workspace",
+            ),
+            SupportRow(
+                workflow="website_clone",
+                status=CapabilityStatus.PRESENT,
+                notes=(
+                    "Static HTML/capture JSON clone package; live DOM/tokens/assets "
+                    "via gotcontext-chrome skill (not REA CDP)"
+                ),
             ),
             SupportRow(
                 workflow="dynamic_attach",
@@ -123,6 +133,24 @@ class ToolProbe(BaseModel):
     status: CapabilityStatus
     detail: str | None = None
     coverage: str | None = None
+
+
+class WebsiteCapture(BaseModel):
+    """Normalized capture from static HTML or a gotcontext-chrome session dump."""
+
+    schema_version: str = SCHEMA_VERSION
+    kind: str = "website-capture"
+    backend: str = "static-html"
+    url: str | None = None
+    title: str | None = None
+    html: str | None = None
+    text: str | None = None
+    tokens: dict[str, Any] = Field(default_factory=dict)
+    assets: list[Any] = Field(default_factory=list)
+    components: list[Any] = Field(default_factory=list)
+    scripts: list[str] = Field(default_factory=list)
+    stylesheets: list[str] = Field(default_factory=list)
+    images: list[str] = Field(default_factory=list)
 
 
 class InventoryResult(BaseModel):

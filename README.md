@@ -2,7 +2,7 @@
 
 Evidence-first **debugging / software-archaeology** toolkit for binaries and apps you are authorized to inspect.
 
-It is a thin Python orchestrator: Windows-first PE + JS/Electron inventory, a six-tool MCP, and an agent skill. It is **not** a dump of REA, leanrea, or REVENG, and it does **not** generate exploits.
+It is a thin Python orchestrator: Windows-first PE + JS/Electron inventory, website clone (static HTML or gotcontext-chrome capture), a thin MCP, and an agent skill. It is **not** a dump of REA, leanrea, or REVENG, and it does **not** generate exploits.
 
 ## Install
 
@@ -22,10 +22,11 @@ Python 3.11+. Optional: `pip install -e ".[lief]"` for the preferred PE engine (
 | `reveng-debug identify PATH` | Magic-byte / extension kind |
 | `reveng-debug inventory PATH` | Copy into `%TEMP%\reveng-debug\<session>\`, emit evidence |
 | `reveng-debug slice PATH NEEDLE` | Bounded static slice |
+| `reveng-debug clone-website TARGET` | HTML file, capture JSON, or static http(s) snapshot |
 | `reveng-debug session show ID` | Session + ledger |
-| `reveng-debug mcp` | Six-tool MCP stdio |
+| `reveng-debug mcp` | Thin MCP stdio (includes `clone_website`) |
 
-Targets are never executed by default. Ghidra and live attach are Wave 2 (`unsupported`).
+Live website DOM/tokens/assets: follow `skills/reveng-debug/SKILL.md` gotcontext-chrome sequence, then `clone-website capture.json`. Native targets are never executed by default. Ghidra and live native attach remain Wave 2 (`unsupported`).
 
 ## Specs
 

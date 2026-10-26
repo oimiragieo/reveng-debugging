@@ -8,6 +8,8 @@ from typing import Any
 from reveng_debug.adapters.electron import inventory_electron
 from reveng_debug.adapters.javascript import inventory_javascript, slice_text
 from reveng_debug.adapters.pe import inventory_pe
+from reveng_debug.adapters.website import clone_website as clone_capture
+from reveng_debug.adapters.website import fetch_url
 from reveng_debug.contracts.models import (
     CapabilityStatus,
     InventoryResult,
@@ -52,6 +54,8 @@ def inventory(path: Path, session_id: str | None = None) -> InventoryResult:
         result = inventory_javascript(admitted, ledger)
     elif kind is TargetKind.ELECTRON:
         result = inventory_electron(admitted, ledger)
+    elif kind is TargetKind.WEBSITE:
+        result = clone_capture(admitted, ledger)
     elif kind in {TargetKind.ELF, TargetKind.MACHO}:
         result = InventoryResult(
             session_id=store.session_id,
@@ -77,7 +81,8 @@ def inventory(path: Path, session_id: str | None = None) -> InventoryResult:
             limitations=["kind unknown; no adapter ran"],
         )
     result.original_path = str(path.resolve())
-    result.workspace_path = str(admitted)
+    if result.target_kind is not TargetKind.WEBSITE:
+        result.workspace_path = str(admitted)
     return result
 
 
@@ -98,6 +103,17 @@ def session_show(session_id: str) -> dict[str, Any]:
     data = store.show()
     data["evidence"] = [item.model_dump() for item in store.read_evidence()]
     return data
+
+
+def clone_website(target: str, session_id: str | None = None) -> InventoryResult:
+    """Clone a local HTML/capture JSON file or a static http(s) snapshot."""
+    if target.startswith(("http://", "https://")):
+        store = SessionStore(session_id=session_id)
+        capture = fetch_url(target)
+        return clone_capture(capture, Ledger(store))
+    path = Path(target)
+    store, admitted = open_session(session_id, path)
+    return clone_capture(admitted, Ledger(store))
 
 
 def evidence_get(session_id: str) -> list[dict[str, Any]]:

@@ -25,9 +25,21 @@ def identify_target(path: Path) -> TargetKind:
     suffix = path.suffix.lower()
     if suffix == ".asar":
         return TargetKind.ELECTRON
+    if suffix in {".html", ".htm"}:
+        return TargetKind.WEBSITE
+    if suffix == ".json":
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            return TargetKind.UNKNOWN
+        if '"kind": "website-capture"' in text or '"kind":"website-capture"' in text:
+            return TargetKind.WEBSITE
     if suffix in {".js", ".mjs", ".cjs", ".ts"}:
         return TargetKind.JAVASCRIPT
-    header = path.read_bytes()[:16]
+    header = path.read_bytes()[:64]
+    lowered = header.lstrip().lower()
+    if lowered.startswith(b"<!doctype html") or lowered.startswith(b"<html"):
+        return TargetKind.WEBSITE
     if header.startswith(b"MZ"):
         return TargetKind.PE
     if header.startswith(ELF):

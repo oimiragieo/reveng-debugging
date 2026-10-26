@@ -7,6 +7,7 @@ reveng-debug doctor
 reveng-debug identify PATH
 reveng-debug inventory PATH [--session-id ID]
 reveng-debug slice PATH NEEDLE [--session-id ID]
+reveng-debug clone-website TARGET [--session-id ID]
 reveng-debug session show ID
 reveng-debug mcp
 ```

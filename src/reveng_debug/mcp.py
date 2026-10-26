@@ -1,4 +1,4 @@
-"""Thin 6-tool MCP stdio server. Not the 207-tool REA catalog."""
+"""Thin MCP stdio server. Not the 207-tool REA catalog."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ TOOLS = (
     },
     {
         "name": "inventory",
-        "description": "Admit a copy and inventory PE/JS/Electron targets.",
+        "description": "Admit a copy and inventory PE/JS/Electron/website targets.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -68,6 +68,21 @@ TOOLS = (
             "required": ["session_id"],
         },
     },
+    {
+        "name": "clone_website",
+        "description": (
+            "Clone a local HTML/capture JSON or static http(s) snapshot. "
+            "Live DOM/tokens come from a gotcontext-chrome capture JSON."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "target": {"type": "string"},
+                "session_id": {"type": "string"},
+            },
+            "required": ["target"],
+        },
+    },
 )
 
 
@@ -99,6 +114,12 @@ def dispatch(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         return _result(service.session_show(str(arguments["session_id"])))
     if name == "evidence_get":
         return _result(service.evidence_get(str(arguments["session_id"])))
+    if name == "clone_website":
+        result = service.clone_website(
+            str(arguments["target"]),
+            session_id=arguments.get("session_id"),
+        )
+        return _result(result.model_dump())
     raise ValueError(f"unknown tool {name}")
 
 

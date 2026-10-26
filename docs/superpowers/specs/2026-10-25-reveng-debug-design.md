@@ -79,6 +79,10 @@ Python >=3.11, pydantic v2, typer, lief, pefile fallback. pytest, ruff, mypy. No
 
 MIT. NOTICE attributes morluto/REA, AICodeKing/leanrea, oimiragieo/REVENG.
 
-## 10. Wave 2 (out of MVP)
+## 10. Website clone (SPEC-RD-007)
 
-Ghidra BYO, ELF/Mach-O via LIEF, TUI + omega-vision `http://127.0.0.1:8092/attach`, gotcontext-chrome website adapter, optional `reveng` extra wiring.
+Shipped after MVP: REA-style "Clone this website" without REA CDP. Static HTML/JSON in-process; live DOM via **gotcontext-chrome** (`tabs_context_mcp`, `navigate`, `get_page_text`, `extract_design_tokens`, `tab_page_assets`, `decompose_dom_components`, `javascript_tool`, `capture_visual_frame`).
+
+## 11. Wave 2 (still deferred)
+
+Ghidra BYO invocation, ELF/Mach-O via LIEF, TUI + omega-vision `http://127.0.0.1:8092/attach`, optional `reveng` extra wiring.
